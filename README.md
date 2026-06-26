@@ -11,9 +11,11 @@ down to mobile.
 ## Highlights
 
 - **Liquid-glass UI** — frosted, backdrop-blurred panels with vibrant gradient accents over a dark canvas.
-- **Live control deck** — dynamics, appearance, quality and capture controls bound directly to the simulation.
-- **Stats HUD** — real-time FPS, render quality and engine readout.
-- **Mobile-first** — the panel becomes a bottom sheet; touch painting fully supported.
+- **SaaS dashboard shell** — left nav rail, top header with profile, and a card-based inspector.
+- **Presets** — one-tap looks (Spectrum, Aurora, Inferno, Neon, Ocean, Glacier) that retune the engine and palette.
+- **Live KPI cards** — real-time frame-rate sparkline, render quality and sim resolution.
+- **Light & dark themes** — toggle from the header; choice is remembered.
+- **Mobile-first** — the inspector becomes a bottom sheet; touch painting fully supported.
 - **Motion** — GSAP entrance choreography and micro-interactions (respects `prefers-reduced-motion`).
 
 ## Run locally
