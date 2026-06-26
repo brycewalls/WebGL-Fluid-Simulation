@@ -55,6 +55,7 @@ let config = {
     SUNRAYS: true,
     SUNRAYS_RESOLUTION: 196,
     SUNRAYS_WEIGHT: 1.0,
+    PALETTE: null, // optional { min, max } hue range (0..1) used by presets
 }
 
 // Snapshot of the defaults so the UI "Reset" action can restore them.
@@ -1493,7 +1494,12 @@ function correctDeltaY (delta) {
 }
 
 function generateColor () {
-    let c = HSVtoRGB(Math.random(), 1.0, 1.0);
+    let h = Math.random();
+    if (config.PALETTE) {
+        h = config.PALETTE.min + Math.random() * (config.PALETTE.max - config.PALETTE.min);
+        h = h - Math.floor(h); // wrap into 0..1
+    }
+    let c = HSVtoRGB(h, 1.0, 1.0);
     c.r *= 0.15;
     c.g *= 0.15;
     c.b *= 0.15;
