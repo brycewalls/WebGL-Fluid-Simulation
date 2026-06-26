@@ -1,224 +1,125 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="utf-8">
         <meta http-equiv="Cache-Control" content="no-cache">
 
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="mobile-web-app-capable" content="yes">
+        <meta name="theme-color" content="#05060c">
 
         <link rel="apple-touch-icon" href="logo.png">
         <link rel="icon" href="logo.png">
 
-        <title>WebGL Fluid Simulation</title>
-        <meta name="description" content="A WebGL fluid simulation that works in mobile browsers.">
+        <title>FLUX — Fluid Studio</title>
+        <meta name="description" content="A liquid-glass control studio for a real-time WebGL fluid simulation.">
 
         <meta property="og:type" content="website">
-        <meta property="og:title" content="Webgl Fluid Simulation">
-        <meta property="og:description" content="A WebGL fluid simulation that works in mobile browsers.">
-        <meta property="og:url" content="https://paveldogreat.github.io/WebGL-Fluid-Simulation/">
+        <meta property="og:title" content="FLUX — Fluid Studio">
+        <meta property="og:description" content="A liquid-glass control studio for a real-time WebGL fluid simulation.">
         <meta property="og:image" content="https://paveldogreat.github.io/WebGL-Fluid-Simulation/logo.png">
 
-        <script type="text/javascript" src="dat.gui.min.js"></script>
-        <style>
-            @font-face {
-                font-family: 'iconfont';
-                src: url('iconfont.ttf') format('truetype');
-            }
-
-            * {
-                user-select: none;
-            }
-
-            html, body {
-                overflow: hidden;
-                background-color: #000;
-            }
-
-            body {
-                margin: 0;
-                position: fixed;
-                width: 100%;
-                height: 100%;
-            }
-
-            canvas {
-                width: 100%;
-                height: 100%;
-            }
-
-            .dg {
-                opacity: 0.9;
-            }
-
-            .dg .property-name {
-                overflow: visible;
-            }
-
-            .bigFont {
-                font-size: 150%;
-                color: #8C8C8C;
-            }
-
-            .cr.function.appBigFont {
-                font-size: 150%;
-                line-height: 27px;
-                color: #A5F8D3;
-                background-color: #023C40;
-            }
-
-            .cr.function.appBigFont .property-name {
-                float: none;
-            }
-
-            .cr.function.appBigFont .icon {
-                position: sticky;
-                bottom: 27px;
-            }
-
-            .icon {
-                font-family: 'iconfont';
-                font-size: 130%;
-                float: right;
-            }
-
-            .twitter:before {
-                content: 'a';
-            }
-
-            .github:before {
-                content: 'b';
-            }
-
-            .app:before {
-                content: 'c';
-            }
-
-            .discord:before {
-                content: 'd';
-            }
-
-            .promo {
-                display: none;
-                /* display: table; */
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                z-index: 1;
-                overflow: auto;
-                color: lightblue;
-                background-color: rgba(0,0,0,0.4);
-                animation: promo-appear-animation 0.35s ease-out;
-            }
-
-            .promo-middle {
-                display: table-cell;
-                vertical-align: middle;
-            }
-
-            .promo-content {
-                width: 80vw;
-                height: 80vh;
-                max-width: 80vh;
-                max-height: 80vw;
-                margin: auto;
-                padding: 0;
-                font-size: 2.8vmax;
-                font-family: Futura, "Trebuchet MS", Arial, sans-serif;
-                text-align: center;
-                background-image: url("promo_back.png");
-                background-position: center;
-                background-repeat: no-repeat;
-                background-size: cover;
-                border-radius: 15px;
-                box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
-            }
-
-            .promo-header {
-                height: 10%;
-                padding: 2px 16px;
-            }
-
-            .promo-close {
-                width: 10%;
-                height: 100%;
-                text-align: left;
-                float: left;
-                font-size: 1.3em;
-                /* transition: 0.2s; */
-            }
-
-            .promo-close:hover {
-                /* transform: scale(1.25); */
-                cursor: pointer;
-            }
-
-            .promo-body {
-                padding: 8px 16px 16px 16px;
-                margin: auto;
-            }
-
-            .promo-body p {
-                margin-top: 0;
-                mix-blend-mode: color-dodge;
-            }
-
-            .link {
-                width: 100%;
-                display: inline-block;
-            }
-
-            .link img {
-                width: 100%;
-            }
-
-            @keyframes promo-appear-animation {
-                0% {
-                    transform: scale(2.0);
-                    opacity: 0;
-                }
-                100% {
-                    transform: scale(1.0);
-                    opacity: 1;
-                }
-            }
-        </style>
+        <link rel="stylesheet" href="ui.css">
         <script>
-            window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
-            ga('create', 'UA-105392568-1', 'auto');
-            ga('send', 'pageview');
+            // Analytics shim kept as a no-op so legacy ga() calls stay harmless.
+            window.ga = window.ga || function () {};
         </script>
-        <script async src="https://www.google-analytics.com/analytics.js"></script>
     </head>
     <body>
         <canvas></canvas>
+        <div class="vignette"></div>
 
-        <!-- Mother of God, pls forgive me -->
-        <div class="promo">
-            <div class="promo-middle">
-                <div class="promo-content">
-                    <div class="promo-header">
-                        <span class="promo-close">&times;</span>
-                    </div>
-                    <div class="promo-body">
-                        <p>Try Fluid Simulation app!</p>
-                        <div class="links-container">
-                            <a class="link" id="apple_link" target="_blank">
-                                <img class="link-img" alt="Download on the App Store" src="app_badge.png"/>
-                            </a>
-                            <a class="link" id="google_link" target="_blank">
-                                <img class="link-img" alt="Get it on Google Play" src="gp_badge.png"/>
-                            </a>
-                        </div>
-                    </div>
-                </div>
+        <!-- ============ Loader ============ -->
+        <div class="loader" id="loader">
+            <div class="loader-inner">
+                <div class="loader-orb"></div>
+                <div class="loader-name">FLUX</div>
+                <div class="loader-bar"><span></span></div>
             </div>
         </div>
 
+        <!-- ============ Top bar ============ -->
+        <header class="topbar">
+            <div class="brand glass" data-anim>
+                <div class="brand-orb"></div>
+                <div class="brand-text">
+                    <span class="brand-name">FLUX</span>
+                    <span class="brand-sub">Fluid Studio</span>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="icon-btn" id="btn-play" data-anim title="Play / Pause (P)" aria-label="Play or pause">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path class="ico-play" d="M7 5l12 7-12 7V5z" fill="currentColor" stroke="none"/>
+                        <g class="ico-pause">
+                            <rect x="7" y="5" width="3.5" height="14" rx="1" fill="currentColor" stroke="none"/>
+                            <rect x="13.5" y="5" width="3.5" height="14" rx="1" fill="currentColor" stroke="none"/>
+                        </g>
+                    </svg>
+                </button>
+                <button class="icon-btn" id="btn-burst" data-anim title="Random burst (Space)" aria-label="Random burst">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                        <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>
+                        <circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/>
+                    </svg>
+                </button>
+                <button class="icon-btn" id="btn-snap" data-anim title="Save snapshot" aria-label="Save snapshot">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 8.5A2.5 2.5 0 015.5 6h1.2l1-1.6A1.5 1.5 0 019 3.7h6a1.5 1.5 0 011.3.7l1 1.6h1.2A2.5 2.5 0 0121 8.5v8A2.5 2.5 0 0118.5 19h-13A2.5 2.5 0 013 16.5z"/>
+                        <circle cx="12" cy="12.5" r="3.3"/>
+                    </svg>
+                </button>
+                <button class="icon-btn accent" id="btn-settings" data-anim title="Controls" aria-label="Toggle controls">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round">
+                        <path d="M5 8h9M18 8h1M5 16h1M10 16h9"/>
+                        <circle cx="16" cy="8" r="2.1"/><circle cx="8" cy="16" r="2.1"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- ============ Control panel ============ -->
+        <aside class="panel glass" id="panel">
+            <div class="panel-head">
+                <div class="panel-title">
+                    <span class="kicker">Live Controls</span>
+                    <h2>Fluid Engine</h2>
+                </div>
+                <button class="panel-close" id="panel-close" aria-label="Close controls">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+            </div>
+            <div class="panel-body" id="panel-body"></div>
+        </aside>
+
+        <!-- ============ Stats HUD ============ -->
+        <div class="hud glass" id="hud">
+            <div class="stat">
+                <span class="stat-label"><span class="live-dot"></span>FPS</span>
+                <span class="stat-val" id="stat-fps">60</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Quality</span>
+                <span class="stat-val" id="stat-quality">High</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Engine</span>
+                <span class="stat-val">WebGL<span class="unit">2</span></span>
+            </div>
+        </div>
+
+        <!-- ============ Hint ============ -->
+        <div class="hint glass" id="hint">
+            <span><b>Drag</b> to paint</span>
+            <span class="dot"></span>
+            <span><b>Tap</b> for a burst</span>
+        </div>
+
+        <script src="gsap.min.js"></script>
+        <script src="ui.js"></script>
         <script src="./script.js"></script>
     </body>
 </html>
