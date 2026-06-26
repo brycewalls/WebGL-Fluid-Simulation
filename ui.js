@@ -42,6 +42,16 @@
 
     const state = { activePreset: null };
 
+    function animatePresetApply() {
+        const g = window.gsap;
+        if (!g || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const body = document.getElementById('panel-body');
+        if (!body) return;
+        g.fromTo(body, { opacity: 0.5 }, { opacity: 1, duration: 0.35, ease: 'power2.out' });
+        const active = body.querySelector('.preset.on');
+        if (active) g.fromTo(active, { scale: 0.92 }, { scale: 1, duration: 0.55, ease: 'back.out(2.2)' });
+    }
+
     /* -------------------------------------------------------
        Build the inspector body (re-runnable on preset/reset)
        ------------------------------------------------------- */
@@ -52,13 +62,16 @@
 
         /* ---- KPI cards ---- */
         const kpis = el('div', 'kpis');
-        kpis.appendChild(el('div', 'kpi',
-            '<div class="k-label"><span class="live-dot"></span>FPS</div><div class="k-val" id="stat-fps">60</div>'));
+        kpis.appendChild(el('div', 'kpi kpi-fps',
+            '<div class="k-row"><div class="k-label"><span class="live-dot"></span>Frame Rate</div>' +
+            '<div class="k-val"><span id="stat-fps">60</span><span class="unit"> fps</span></div></div>' +
+            '<canvas class="spark" id="fps-spark"></canvas>'));
         kpis.appendChild(el('div', 'kpi',
             '<div class="k-label">Quality</div><div class="k-val" id="stat-quality">High</div>'));
         kpis.appendChild(el('div', 'kpi',
             '<div class="k-label">Sim</div><div class="k-val" id="stat-sim">128</div>'));
         body.appendChild(kpis);
+        if (ctx.onKpiBuilt) ctx.onKpiBuilt();
 
         function card(id, icon, title, meta) {
             const c = el('div', 'card');
@@ -138,6 +151,7 @@
                 splatStack.push(14);
                 buildControls(ctx, refreshKpis);
                 if (refreshKpis) refreshKpis();
+                animatePresetApply();
             });
             grid.appendChild(b);
         });
@@ -238,6 +252,14 @@
         });
         snapBtn.addEventListener('click', actions.captureScreenshot);
 
+        /* Theme toggle (persisted) */
+        const themeBtn = document.getElementById('btn-theme');
+        if (themeBtn) themeBtn.addEventListener('click', () => {
+            const light = document.documentElement.classList.toggle('light');
+            try { localStorage.setItem('flux-theme', light ? 'light' : 'dark'); } catch (e) {}
+            drawSpark();
+        });
+
         /* Panel open / close */
         let open = window.innerWidth > 720;
         const isDesktop = () => window.innerWidth > 720;
@@ -257,6 +279,7 @@
                 panel.style.display = v ? 'flex' : 'none';
                 if (g) g.set(panel, { autoAlpha: 1, x: 0, y: 0 });
             }
+            if (v && typeof setupSpark === 'function') requestAnimationFrame(setupSpark);
         }
         settingsBtn.addEventListener('click', () => setPanel(!open, true));
         closeBtn.addEventListener('click', () => setPanel(false, true));
@@ -290,14 +313,79 @@
         /* Keep play icon synced with the P shortcut */
         window.addEventListener('keydown', e => { if (e.code === 'KeyP') setTimeout(syncPlay, 0); });
 
-        /* FPS meter, fed by the render loop */
+        /* FPS meter + live sparkline, fed by the render loop */
+        const MAX_SAMPLES = 60;
+        const samples = [];
+        let spark = null; // { canvas, cx, w, h }
+
+        function setupSpark() {
+            const canvas = document.getElementById('fps-spark');
+            if (!canvas) { spark = null; return; }
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const w = canvas.clientWidth || 300, h = canvas.clientHeight || 20;
+            canvas.width = Math.round(w * dpr);
+            canvas.height = Math.round(h * dpr);
+            const cx = canvas.getContext('2d');
+            cx.scale(dpr, dpr);
+            spark = { canvas, cx, w, h };
+            drawSpark();
+        }
+
+        function drawSpark() {
+            if (!spark) return;
+            const { cx, w, h } = spark;
+            cx.clearRect(0, 0, w, h);
+            if (samples.length < 2) return;
+            const max = Math.max(60, ...samples);
+            const n = samples.length;
+            const x = i => (i / (MAX_SAMPLES - 1)) * w;
+            const y = v => h - 2 - (v / max) * (h - 4);
+            const start = MAX_SAMPLES - n;
+
+            // soft fill under the curve
+            const fill = cx.createLinearGradient(0, 0, 0, h);
+            fill.addColorStop(0, 'rgba(43,150,255,0.34)');
+            fill.addColorStop(1, 'rgba(43,150,255,0)');
+            cx.beginPath();
+            cx.moveTo(x(start), h);
+            samples.forEach((v, i) => cx.lineTo(x(start + i), y(v)));
+            cx.lineTo(x(MAX_SAMPLES - 1), h);
+            cx.closePath();
+            cx.fillStyle = fill;
+            cx.fill();
+
+            // line
+            const line = cx.createLinearGradient(0, 0, w, 0);
+            line.addColorStop(0, '#1b96ff');
+            line.addColorStop(1, '#2fe6ff');
+            cx.beginPath();
+            samples.forEach((v, i) => { const px = x(start + i), py = y(v); i ? cx.lineTo(px, py) : cx.moveTo(px, py); });
+            cx.strokeStyle = line;
+            cx.lineWidth = 2; cx.lineJoin = 'round'; cx.lineCap = 'round';
+            cx.stroke();
+
+            // head dot
+            const lastX = x(MAX_SAMPLES - 1), lastY = y(samples[n - 1]);
+            cx.beginPath(); cx.arc(lastX, lastY, 2.2, 0, Math.PI * 2);
+            cx.fillStyle = '#2fe6ff'; cx.fill();
+        }
+
+        // Re-acquire the sparkline canvas whenever the inspector body is rebuilt.
+        ctx.onKpiBuilt = setupSpark;
+        setupSpark();
+        window.addEventListener('resize', setupSpark);
+
         let frames = 0, last = performance.now();
         window.FluidUI.onFrame = function () {
             frames++;
             const now = performance.now();
             if (now - last >= 500) {
+                const fps = Math.round((frames * 1000) / (now - last));
                 const fpsEl = document.getElementById('stat-fps');
-                if (fpsEl) fpsEl.textContent = Math.round((frames * 1000) / (now - last));
+                if (fpsEl) fpsEl.textContent = fps;
+                samples.push(fps);
+                if (samples.length > MAX_SAMPLES) samples.shift();
+                drawSpark();
                 frames = 0; last = now;
             }
         };
